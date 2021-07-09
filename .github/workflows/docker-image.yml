@@ -1,5 +1,9 @@
 name: Docker Image CI
 
+defaults:
+  run:
+    working-directory: neptune
+
 on:
   push:
     branches: [ master ]
