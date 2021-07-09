@@ -1,6 +1,13 @@
 # The API for neptune
 
+## Environment Variables
+* **NeptunePort**
+    The port that Neptune will listen on.  
+* **NeptuneKey**
+    The key that clients will use to connect.
+
 ## Reading
+I was using this application to learn a bit about go so these are some resources I used.  
 https://www.gwos.com/application-monitoring-with-the-prometheus-client-and-groundwork-monitor/  
 
 https://linuxize.com/post/curl-post-request/  
