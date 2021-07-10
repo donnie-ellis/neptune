@@ -9,7 +9,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
+  BUILD_VER: "1.0.$GITHUB_RUN_NUMBER"
+  IMAGE: "$REGISTRY/$IMAGE_NAME"
+  BUILD_DATE: $(date +'%Y-%m-%d %H:%M:%S')
+  GIT_SHA: "${{ github.sha }} | cut -c1-7)"
+  GIT_REF: "$(git symbolic-ref -q --short HEAD || git describe --tags --exact-match)"
 jobs:
 
   build:
@@ -41,7 +45,7 @@ jobs:
           org.opencontainers.image.source=https://github.com/${{ github.repository }}
           org.opencontainers.image.version=${{ env.BUILD_VER }}
         tags: |
-          ${{ env.IMAGE_NAME }}:latest
-          ${{ env.IMAGE_NAME }}:${{ env.GIT_REF }}
-          ${{ env.IMAGE_NAME }}:${{ env.GIT_SHA }}
-          ${{ env.IMAGE_NAME }}:${{ env.BUILD_VER }}
+          ${{ env.IMAGE }}:latest
+          ${{ env.IMAGE }}:${{ env.GIT_REF }}
+          ${{ env.IMAGE }}:${{ env.GIT_SHA }}
+          ${{ env.IMAGE }}:${{ env.BUILD_VER }}
