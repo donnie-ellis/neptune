@@ -20,6 +20,6 @@ jobs:
       uses: mr-smithers-excellent/docker-build-push@v3
       with:
         image: drtydogg/neptune
-        registry: gcr.io
+        registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
