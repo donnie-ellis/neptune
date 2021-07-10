@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - nane: Check it out
+    - name: Check it out
       uses: actions/checkout@v2
 
     - name: Build and push Docker image
