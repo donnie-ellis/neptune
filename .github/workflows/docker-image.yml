@@ -6,14 +6,6 @@ on:
   pull_request:
     branches: [ master ]
 
-env:
-  REGISTRY: "ghcr.io"
-  IMAGE_NAME: ${{ github.repository }}
-  BUILD_VER: "1.0.$GITHUB_RUN_NUMBER"
-  IMAGE: "ghcr.io/dirtydogg/neptune"
-  BUILD_DATE: $(date +'%Y-%m-%d %H:%M:%S')
-  GIT_SHA: ${{ github.sha }} | cut -c1-7)
-  GIT_REF: $(git symbolic-ref -q --short HEAD || git describe --tags --exact-match)
 jobs:
 
   build:
@@ -21,31 +13,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - nane: Check it out
+      uses: actions/checkout@v2
 
-    - name: Login to the registry
-      uses: docker/login-action@v1
+    - name: Build and push Docker image
+      uses: mr-smithers-excellent/docker-build-push@v3
       with:
-        registry: ${{ env.REGISTRY }}
+        image: drtydogg/neptune
+        registry: gcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Build and push the neptune Docker image
-      uses: docker/build-push-action@v2
-      with:
-        context: ./neptune
-        file: ./neptune/Dockerfile
-        push: true
-        labels: |
-          org.opencontainers.image.authors=${{ github.repository_owner }}
-          org.opencontainers.image.created=${{ env.BUILD_DATE }}
-          org.opencontainers.image.description=Created from commit ${{ env.GIT_SHA }} and ref ${{ env.GIT_REF }}
-          org.opencontainers.image.ref.name=${{ env.GIT_REF }}
-          org.opencontainers.image.revision=${{ github.sha }}
-          org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          org.opencontainers.image.version=${{ env.BUILD_VER }}
-        tags: |
-          ${{ env.IMAGE }}:latest
-          ${{ env.IMAGE }}:${{ env.GIT_REF }}
-          ${{ env.IMAGE }}:${{ env.GIT_SHA }}
-          ${{ env.IMAGE }}:${{ env.BUILD_VER }}
