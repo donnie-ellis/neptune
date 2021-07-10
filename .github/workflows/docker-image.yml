@@ -14,10 +14,10 @@ jobs:
 
     steps:
     - name: Check it out
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
     - name: Build and push Neptune image
-      uses: mr-smithers-excellent/docker-build-push@v3
+      uses: mr-smithers-excellent/docker-build-push@v4
       with:
         image: drtydogg/neptune
         directory: ./neptune
