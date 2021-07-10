@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  BUILD_VER: "1.0.$GITHUB_RUN_NUMBER"
+  IMAGE: ${{ REGISTRY }}/${{ github.repository }}
+  BUILD_DATE: $(date +'%Y-%m-%d %H:%M:%S')
+  GIT_SHA: ${{ github.sha }} | cut -c1-7)
+  GIT_REF: $(git symbolic-ref -q --short HEAD || git describe --tags --exact-match)
 jobs:
 
   build:
@@ -14,22 +22,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: set env variables
-      run: |
-        IMG=neptune
-        echo "::set-env name=BUILD_VER::1.0.$GITHUB_RUN_NUMBER"
-        echo "::set-env name=IMG::${IMG}"
-        echo "::set-env name=IMAGE::ghcr.io/${{ github.repository_owner }}/${IMG}"
-        echo "::set-env name=BUILD_DATE::$(date +'%Y-%m-%d %H:%M:%S')"
-        echo "::set-env name=GIT_SHA::$(echo ${{ github.sha }} | cut -c1-7)"
-        echo "::set-env name=GIT_REF::$(git symbolic-ref -q --short HEAD || git describe --tags --exact-match)"IMG=neptune
-        echo "::set-env name=BUILD_VER::1.0.$GITHUB_RUN_NUMBER"
-        echo "::set-env name=IMG::${IMG}"
-        echo "::set-env name=IMAGE::ghcr.io/${{ github.repository_owner }}/${IMG}"
-        echo "::set-env name=BUILD_DATE::$(date +'%Y-%m-%d %H:%M:%S')"
-        echo "::set-env name=GIT_SHA::$(echo ${{ github.sha }} | cut -c1-7)"
-        echo "::set-env name=GIT_REF::$(git symbolic-ref -q --short HEAD || git describe --tags --exact-match)"
 
     - name: Login to the registry
       uses: docker/login-action@v1
