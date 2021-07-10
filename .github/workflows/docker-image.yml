@@ -16,11 +16,12 @@ jobs:
     - name: Check it out
       uses: actions/checkout@v2
 
-    - name: Build and push Docker image
+    - name: Build and push Neptune image
       uses: mr-smithers-excellent/docker-build-push@v3
       with:
         image: drtydogg/neptune
         directory: ./neptune
+        dockerfile: ./neptune/Dockerfile
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
