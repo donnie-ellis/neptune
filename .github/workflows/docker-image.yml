@@ -21,7 +21,6 @@ jobs:
       with:
         image: drtydogg/neptune
         directory: ./neptune
-        dockerfile: Dockerfile
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
