@@ -1,5 +1,8 @@
 FROM golang:1.16.5
 
+ENV GOOS=linux
+ENV GOARCH=arm
+
 RUN mkdir /app
 COPY ./neptune /app
 WORKDIR /app
