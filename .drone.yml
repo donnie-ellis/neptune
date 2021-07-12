@@ -4,14 +4,13 @@ name: dmellis-neptune
 platform:
   os: linux
   arch: arm64
-workspace: /neptune
 steps:
   - name: build for test
     image: plugins/docker
     settings:
       repo: docker.dmellis.com/dmellis/neptune
       registry: docker.dmellis.com
-      dockerfile: ./Dockerfile
+      dockerfile: ./neptune/Dockerfile
       tags: ["${DRONE_COMMIT_SHA:0:7}", "latest"]
       username:
         from_secret: registry_username
@@ -26,7 +25,7 @@ steps:
     settings:
       repo: docker.dmellis.com/dmellis/neptune
       registry: docker.dmellis.com
-      dockerfile: ./Dockerfile
+      dockerfile: ./netpune/Dockerfile
       tags: ["${DRONE_COMMIT_SHA:0:7}", "latest", "${DRONE_TAG}"]
       username:
         from_secret: registry_username
