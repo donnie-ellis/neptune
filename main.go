@@ -55,11 +55,11 @@ var (
 )
 
 func cleanString(in string) string {
-	in = strings.ReplaceAll(in, " ", "_")
-	in = strings.TrimSpace(in)
-	in = strings.ToLower(in)
+	out := strings.TrimSpace(in)
+	out = strings.ReplaceAll(out, " ", "_")
+	out = strings.ToLower(out)
 
-	return in
+	return out
 
 }
 

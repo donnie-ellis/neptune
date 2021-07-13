@@ -4,7 +4,7 @@ ENV GOOS=linux
 ENV GOARCH=arm
 
 RUN mkdir /app
-COPY ./neptune /app
+COPY . /app
 WORKDIR /app
 RUN go build -o neptune .
 CMD [ "/app/neptune" ]
