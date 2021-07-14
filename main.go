@@ -15,13 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type Temperature struct {
-	Temperature float64
-	Date        string
-	Change      float64
-	Tank        string
-}
-
 var (
 	totalRequests = prometheus.NewCounter(
 		prometheus.CounterOpts{
@@ -60,7 +53,6 @@ func cleanString(in string) string {
 	out = strings.ToLower(out)
 
 	return out
-
 }
 
 func setTemperature(w http.ResponseWriter, r *http.Request) {
@@ -109,9 +101,10 @@ func setTemperature(w http.ResponseWriter, r *http.Request) {
 
 func handleRequests(port string) {
 	router := mux.NewRouter().StrictSlash(true)
-	totalRequests.Inc()
 	portNumber := fmt.Sprintf(":%v", port)
-	router.HandleFunc("/", homePage)
+	fileServer := http.FileServer(http.Dir("./static"))
+	totalRequests.Inc()
+	router.Handle("/", http.StripPrefix("/", fileServer))
 	router.Path("/metrics").Handler(promhttp.Handler())
 	router.HandleFunc("/temperature", setTemperature).Methods("POST")
 	router.HandleFunc("/temperature", returnTemperature)
@@ -119,12 +112,6 @@ func handleRequests(port string) {
 	fmt.Println("Listening on ", portNumber, " . . .")
 	err := http.ListenAndServe(portNumber, router)
 	log.Fatal(err)
-}
-
-func homePage(w http.ResponseWriter, r *http.Request) {
-	totalRequests.Inc()
-	fmt.Fprint(w, "Welcome to Neptune")
-	fmt.Println("Endpoint Hit: homePage")
 }
 
 func init() {
