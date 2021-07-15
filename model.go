@@ -2,15 +2,9 @@
 
 package main
 
-import "errors"
-
 type temperature struct {
-	Temperature float64
-	Date        string
-	Change      float64
-	Tank        string
-}
-
-func (t *temperature) getTemperature() error {
-	return errors.New("Not implemented")
+	Temperature float64 `json:"temperature"`
+	Date        string  `json:"Date"`
+	Change      float64 `json:"Change"`
+	Tank        string  `json:"tank"`
 }

@@ -16,6 +16,8 @@ https://golangdocs.com/golang-mux-router
 
 https://gabrieltanner.org/blog/collecting-prometheus-metrics-in-golang  
 
+https://semaphoreci.com/community/tutorials/building-and-testing-a-rest-api-in-go-with-gorilla-mux-and-postgresql
+
 ## Testing  
 ### Linux
 #### New Temperature

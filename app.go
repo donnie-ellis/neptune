@@ -6,12 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type App struct {
@@ -48,20 +51,40 @@ func (a *App) Initialize(applicationKey string) {
 			Help: "The temperature of the tank"},
 		[]string{"tank"})
 	a.key = applicationKey
+
+	a.intializeRoutes()
 }
 
-func (a *App) Run(port string) {}
+func (a *App) Run(port string) {
+	log.Println("Starting the server at localhost:", port)
+	log.Fatal(http.ListenAndServe(":"+port, a.Router))
+}
 
+func respondWithError(w http.ResponseWriter, code int, message string) {
+	respondWithJSON(w, code, map[string]string{"error": message})
+}
+
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
+	w.Header().Set("Content-Type", "applcation/json")
+	w.WriteHeader(code)
+	w.Write(response)
+}
+
+// getTemperature
+// handles gets to /temperature
 func (a *App) getTemperature(w http.ResponseWriter, r *http.Request) {
 	a.prometheus.temperature_gets.Inc()
 	a.prometheus.total_requests.Inc()
 	if len(a.temperatures) == 0 {
-		w.WriteHeader(http.StatusNoContent)
+		respondWithError(w, http.StatusNotFound, "temperature not found")
 	} else {
-		json.NewEncoder(w).Encode(a.temperatures)
+		respondWithJSON(w, http.StatusOK, a.temperatures)
 	}
 }
 
+// postTemperature
+// handles posts to /temperature
 func (a *App) postTemperature(w http.ResponseWriter, r *http.Request) {
 	a.prometheus.temperature_posts.Inc()
 	a.prometheus.total_requests.Inc()
@@ -70,56 +93,73 @@ func (a *App) postTemperature(w http.ResponseWriter, r *http.Request) {
 	var existingIndex int
 	var tankExists bool
 
-	userName, err := validateToken(r, a)
-	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
-	}
-	fmt.Printf(userName)
-
-	// set the tank name
-	if tankName := r.PostFormValue("tank"); len(tankName) != 0 {
-		temp.Tank = cleanString(tankName)
+	if userName, err := validateToken(r, a); err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
 	} else {
-		temp.Tank = "default"
-	}
+		fmt.Println(userName)
 
-	// Check if there is already an entry for that tank
-	for index, entry := range a.temperatures {
-		if entry.Tank == temp.Tank {
-			temp = entry
-			existingIndex = index
-			tankExists = true
-		}
-	}
-
-	if tempString := r.PostFormValue("temperature"); len(tempString) != 0 {
-		newTemp, err := strconv.ParseFloat(tempString, 64)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Printf("Unable to convert the temperature to a float")
-		}
-		temp.Change = newTemp - temp.Temperature
-		temp.Date = time.Now().Format("2006-01-02 15:04")
-		temp.Temperature = newTemp
-		if tankExists {
-			a.temperatures[existingIndex] = temp
+		// set the tank name
+		if tankName := r.PostFormValue("tank"); len(tankName) != 0 {
+			temp.Tank = cleanString(tankName)
 		} else {
-			a.temperatures = append(a.temperatures, temp)
+			temp.Tank = "default"
 		}
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Printf("The temperature wasn't provided")
+
+		// Check if there is already an entry for that tank
+		for index, entry := range a.temperatures {
+			if entry.Tank == temp.Tank {
+				temp = entry
+				existingIndex = index
+				tankExists = true
+			}
+		}
+
+		if tempString := r.PostFormValue("temperature"); len(tempString) != 0 {
+			if newTemp, err := strconv.ParseFloat(tempString, 64); err != nil {
+				respondWithError(w, http.StatusBadRequest, "Unable to convert the temperature to a float")
+			} else {
+				temp.Change = newTemp - temp.Temperature
+				temp.Date = time.Now().Format("2006-01-02 15:04")
+				temp.Temperature = newTemp
+				if tankExists {
+					a.temperatures[existingIndex] = temp
+				} else {
+					a.temperatures = append(a.temperatures, temp)
+					respondWithJSON(w, http.StatusCreated, temp)
+				}
+			}
+		} else {
+			respondWithJSON(w, http.StatusBadRequest, "The temperature wasn't provided")
+		}
 	}
 }
 
+// validateToken
+// takes a http request and validates the basic authentication
+// returns the user name
 func validateToken(r *http.Request, a *App) (userName string, err error) {
 	userName, password, hasAuth := r.BasicAuth()
 	if !hasAuth {
-		return "", errors.New("No authentication provided")
+		return "", errors.New("no authentication provided")
 	} else if password == a.key {
 		return userName, nil
 	} else {
-		return userName, errors.New("Username or password was incorrect")
+		return userName, errors.New("username or password was incorrect")
 	}
+}
 
+// cleanString
+// removes whitespace from a string and makes it lowercase
+func cleanString(in string) string {
+	out := strings.TrimSpace(in)
+	out = strings.ReplaceAll(out, " ", "_")
+	out = strings.ToLower(out)
+
+	return out
+}
+
+func (a *App) intializeRoutes() {
+	a.Router.HandleFunc("/temperature", a.getTemperature).Methods("GET")
+	a.Router.HandleFunc("/temperature", a.postTemperature).Methods("POST")
+	a.Router.Handle("/metrics", promhttp.Handler())
 }
