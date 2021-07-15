@@ -1,3 +1,5 @@
+// main.go
+
 package main
 
 import (
@@ -6,46 +8,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var (
-	totalRequests = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Number of get requests.",
-		},
-	)
-
-	temperatureGets = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "temperature_gets_total",
-			Help: "Number of gets to the temperature endpoint",
-		},
-	)
-
-	temperatureSets = prometheus.NewCounter(
-		prometheus.CounterOpts{
-			Name: "temperature_post_total",
-			Help: "Number of posts to the temperature endpoint",
-		},
-	)
-	temperatureGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "temperature_of_tank",
-			Help: "The temperature of a tank",
-		},
-		[]string{"tank"},
-	)
-
-	Temperatures []Temperature
-)
+var ()
 
 func cleanString(in string) string {
 	out := strings.TrimSpace(in)
@@ -53,50 +23,6 @@ func cleanString(in string) string {
 	out = strings.ToLower(out)
 
 	return out
-}
-
-func setTemperature(w http.ResponseWriter, r *http.Request) {
-	temperatureSets.Inc()
-	fmt.Println("Endpoint: setTemperature")
-
-	// Authenticate the request
-	userName, password, hasAuth := r.BasicAuth()
-	if hasAuth && validateToken(userName, password) {
-		var Temp Temperature
-		var existingIndex int
-		var tankExists bool = false
-		if tankName := r.PostFormValue("tank"); len(tankName) != 0 {
-			Temp.Tank = cleanString(tankName)
-		} else {
-			Temp.Tank = "default"
-		}
-		// Check if there is already an entry for that tank
-		for index, Tank := range Temperatures {
-			if Tank.Tank == Temp.Tank {
-				Temp = Tank
-				existingIndex = index
-				tankExists = true
-			}
-		}
-		// Make sure a temperature was provided
-		if temp, err := strconv.ParseFloat(r.PostFormValue("temperature"), 64); err == nil {
-			Temp.Change = temp - Temp.Temperature
-			Temp.Date = time.Now().Format("2006-01-02 15:04")
-			Temp.Temperature = temp
-			if tankExists {
-				Temperatures[existingIndex] = Temp
-			} else {
-				Temperatures = append(Temperatures, Temp)
-			}
-			temperatureGauge.WithLabelValues(Temp.Tank).Set(Temp.Temperature)
-
-			json.NewEncoder(w).Encode(Temp)
-		} else {
-			http.Error(w, `temperature(float64) is a required parameter`, http.StatusBadRequest)
-		}
-	} else {
-		w.WriteHeader(http.StatusForbidden)
-	}
 }
 
 func handleRequests(port string) {
@@ -131,7 +57,7 @@ func returnTemperature(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateToken(userName, password string) bool {
+func vsalidateToken(userName, password string) bool {
 	key, keyPresent := os.LookupEnv("NeptuneKey")
 	if keyPresent && password == key {
 		return true
@@ -140,6 +66,23 @@ func validateToken(userName, password string) bool {
 }
 
 func main() {
+	port, portPresent := os.LookupEnv("NeptunePort")
+
+	if !portPresent {
+		port = "8000"
+		fmt.Println("Port not specified using 8000")
+	}
+	key, keyPresent := os.LookupEnv("NeptuneKey")
+
+	if !keyPresent {
+		log.Panicf("You need to specify a key")
+	}
+	a := App{}
+	a.Initialize(key)
+	a.Run(port)
+}
+
+/* func main() {
 	port, portPresent := os.LookupEnv("NeptunePort")
 
 	if !portPresent {
@@ -159,3 +102,4 @@ func main() {
 
 	handleRequests(port)
 }
+*/
