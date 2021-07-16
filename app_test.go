@@ -31,7 +31,6 @@ func TestCleanString(t *testing.T) {
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
 	a.Router.ServeHTTP(rr, req)
-
 	return rr
 }
 
@@ -70,9 +69,9 @@ func TestGetTemperature(t *testing.T) {
 }
 
 func TestGetNoTemperatures(t *testing.T) {
+	a.temperatures = nil
 	req, _ := http.NewRequest("GET", "/temperature", nil)
 	response := executeRequest(req)
-
 	checkResponseCode(t, http.StatusNotFound, response.Code)
 
 	var m map[string]string
@@ -87,7 +86,6 @@ func TestGetNoTemperatures(t *testing.T) {
 func TestPostTemperature(t *testing.T) {
 	data := url.Values{}
 	data.Add("temperature", "68.8")
-	data.Add("tank", "test")
 	req, _ := http.NewRequest("POST", "/temperature", bytes.NewBufferString(data.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth("test", "testKey")
@@ -130,7 +128,6 @@ func TestPostWrongToken(t *testing.T) {
 func TestPostBadTemperature(t *testing.T) {
 	data := url.Values{}
 	data.Add("temperature", "test")
-	data.Add("tank", "test")
 	req, _ := http.NewRequest("POST", "/temperature", bytes.NewBufferString(data.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth("test", "testKey")

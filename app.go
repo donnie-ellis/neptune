@@ -5,7 +5,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -96,11 +95,9 @@ func (a *App) postTemperature(w http.ResponseWriter, r *http.Request) {
 	if userName, err := validateToken(r, a); err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 	} else {
-		fmt.Println(userName)
-
 		// set the tank name
-		if tankName := r.PostFormValue("tank"); len(tankName) != 0 {
-			temp.Tank = cleanString(tankName)
+		if len(userName) != 0 {
+			temp.Tank = cleanString(userName)
 		} else {
 			temp.Tank = "default"
 		}
