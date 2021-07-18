@@ -83,6 +83,8 @@ func TestGetNoTemperatures(t *testing.T) {
 	}
 }
 
+// TestPostTemperature
+//
 func TestPostTemperature(t *testing.T) {
 	data := url.Values{}
 	data.Add("temperature", "68.8")
@@ -106,6 +108,9 @@ func TestPostTemperature(t *testing.T) {
 	}
 }
 
+// TestPostWrongToken
+// Posts a temperature with an an invalid password
+// Pass if errors with an appropriate message
 func TestPostWrongToken(t *testing.T) {
 	data := url.Values{}
 	data.Add("temperature", "68.9")
@@ -125,6 +130,9 @@ func TestPostWrongToken(t *testing.T) {
 	}
 }
 
+// TestPostBadTemperature
+// Makes a post with a non-numerical temperature
+// Pass if failed with an appropriate error code
 func TestPostBadTemperature(t *testing.T) {
 	data := url.Values{}
 	data.Add("temperature", "test")
@@ -140,5 +148,97 @@ func TestPostBadTemperature(t *testing.T) {
 	}
 	if m["error"] != "Unable to convert the temperature to a float" {
 		t.Errorf("Expected the 'error' key of the response to be set to 'Unable to convert the temperature to a float'. Got '%s'", m["error"])
+	}
+}
+
+// TestPostTemperatureNoUsername
+// Makes a post without a username
+// Pass if the temperature is created for a tank named 'default'
+func TestPostTemperatureNoUsername(t *testing.T) {
+	data := url.Values{}
+	data.Add("temperature", "68.8")
+	req, _ := http.NewRequest("POST", "/temperature", bytes.NewBufferString(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth("", "testKey")
+	response := executeRequest(req)
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var k temperature
+	if err := json.Unmarshal(response.Body.Bytes(), &k); err != nil {
+		t.Errorf("The response wasn't in a compatible format, the message is %s", err)
+	}
+
+	if k.Temperature != 68.8 {
+		t.Errorf("Expected temperature to be '68.8'. Got '%v'", strconv.FormatFloat(k.Temperature, 'f', 1, 64))
+	}
+
+	if k.Tank != "default" {
+		t.Errorf("Expected tank name to be 'default'. Got '%v'", k.Tank)
+	}
+}
+
+// TestPostTemperatureNoAuth
+// Makes a post withouth an authorization header
+// Pass if the correct error is returned
+func TestPostTemperatureNoAuth(t *testing.T) {
+	data := url.Values{}
+	data.Add("temperature", "69.0")
+	req, _ := http.NewRequest("POST", "/temperature", bytes.NewBufferString(data.Encode()))
+	response := executeRequest(req)
+	checkResponseCode(t, http.StatusUnauthorized, response.Code)
+
+	var m map[string]string
+	if err := json.Unmarshal(response.Body.Bytes(), &m); err != nil {
+		t.Errorf("The response wasn't in a compatible format, the message is %s", err)
+	}
+	if m["error"] != "no authentication provided" {
+		t.Errorf("Expected an error of 'no authentication provided' and received %s", m["error"])
+	}
+
+}
+
+func TestPostTemperatureNoTemperatureProvided(t *testing.T) {
+	data := url.Values{}
+	req, _ := http.NewRequest("POST", "/temperature", bytes.NewBufferString(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth("test", "testKey")
+	response := executeRequest(req)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	if err := json.Unmarshal(response.Body.Bytes(), &m); err != nil {
+		t.Errorf("The response wasn't in a compatible format, the message is %s", err)
+	}
+	if m["error"] != "the temperature wasn't provided" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'the temperature wasn't provided'. Got '%s'", m["error"])
+	}
+}
+
+func TestPostTemperatureMultiple(t *testing.T) {
+	var tank temperature
+	tank.Change = 67.9
+	tank.Temperature = 67.9
+	tank.Tank = "tank1"
+	a.temperatures = append(a.temperatures, tank)
+
+	data := url.Values{}
+	data.Add("temperature", "69.0")
+	req, _ := http.NewRequest("POST", "/temperature", bytes.NewBufferString(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth("tank1", "testKey")
+	response := executeRequest(req)
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var k temperature
+	if err := json.Unmarshal(response.Body.Bytes(), &k); err != nil {
+		t.Errorf("The response wasn't in a compatible format, the message is %s", err)
+	}
+
+	if k.Temperature != 69.0 {
+		t.Errorf("Expected temperature to be '69.0'. Got '%v'", strconv.FormatFloat(k.Temperature, 'f', 1, 64))
+	}
+
+	if k.Tank != "tank1" {
+		t.Errorf("Expected tank name to be 'tank1'. Got '%v'", k.Tank)
 	}
 }

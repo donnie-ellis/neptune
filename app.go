@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
@@ -59,6 +58,18 @@ func (a *App) Run(port string) {
 	log.Fatal(http.ListenAndServe(":"+port, a.Router))
 }
 
+func (a *App) DoesTheTankExist(name string) (bool, int) {
+	exists := false
+	var existingIndex int
+	for index, entry := range a.temperatures {
+		if entry.Tank == name {
+			existingIndex = index
+			exists = true
+		}
+	}
+	return exists, existingIndex
+}
+
 func respondWithError(w http.ResponseWriter, code int, message string) {
 	respondWithJSON(w, code, map[string]string{"error": message})
 }
@@ -87,46 +98,38 @@ func (a *App) getTemperature(w http.ResponseWriter, r *http.Request) {
 func (a *App) postTemperature(w http.ResponseWriter, r *http.Request) {
 	a.prometheus.temperature_posts.Inc()
 	a.prometheus.total_requests.Inc()
-
-	var temp temperature
-	var existingIndex int
+	var tankName string
 	var tankExists bool
-
+	var existingIndex int
 	if userName, err := validateToken(r, a); err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 	} else {
 		// set the tank name
 		if len(userName) != 0 {
-			temp.Tank = cleanString(userName)
+			tankName = cleanString(userName)
 		} else {
-			temp.Tank = "default"
+			tankName = "default"
 		}
 
+		tankExists, existingIndex = a.DoesTheTankExist(tankName)
 		// Check if there is already an entry for that tank
-		for index, entry := range a.temperatures {
-			if entry.Tank == temp.Tank {
-				temp = entry
-				existingIndex = index
-				tankExists = true
-			}
+
+		if !tankExists {
+			var newTank temperature
+			newTank.Tank = tankName
+			a.temperatures = append(a.temperatures, newTank)
+			tankExists, existingIndex = a.DoesTheTankExist(tankName)
 		}
 
 		if tempString := r.PostFormValue("temperature"); len(tempString) != 0 {
 			if newTemp, err := strconv.ParseFloat(tempString, 64); err != nil {
 				respondWithError(w, http.StatusBadRequest, "Unable to convert the temperature to a float")
 			} else {
-				temp.Change = newTemp - temp.Temperature
-				temp.Date = time.Now().Format("2006-01-02 15:04")
-				temp.Temperature = newTemp
-				if tankExists {
-					a.temperatures[existingIndex] = temp
-				} else {
-					a.temperatures = append(a.temperatures, temp)
-					respondWithJSON(w, http.StatusCreated, temp)
-				}
+				a.temperatures[existingIndex].setTemperature(newTemp)
+				respondWithJSON(w, http.StatusCreated, a.temperatures[existingIndex])
 			}
 		} else {
-			respondWithJSON(w, http.StatusBadRequest, "The temperature wasn't provided")
+			respondWithError(w, http.StatusBadRequest, "the temperature wasn't provided")
 		}
 	}
 }
